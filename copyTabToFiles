@@ -1,0 +1,42 @@
+/*
+* Scenario: During Budget Planning, there are many different sheets for each team. We created a new Tab "FY25-Q3" with new UI, content and Formula; 
+* and want this Tab to be replicated across all Sheets of different Team.
+* Function: To Copy a Tab from Specific Sheet and Add this Tab across list of Sheets via. their URL.
+*/
+
+
+function copyTabToFiles() {
+  var sourceSheetId = '12MT9O8t2vuU86goC2x8benET7jtA3Q6Y2JyQeIuvkf8'; // Replace with the ID of the source Google Sheet
+  var sourceSheetName = 'FY25-Q3'; // The name of the tab to copy
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("All Files");
+  if (!sheet) {
+    Logger.log('Sheet "All Files" not found!');
+    return;
+  }
+
+  var data = sheet.getRange(2, 2, sheet.getLastRow() - 1).getValues(); // Get all URLs from column B
+
+  data.forEach(function(row) {
+    var fileUrl = row[0];
+    try {
+      var fileId = fileUrl.match(/[-\w]{25,}/); // Extract the file ID from the URL
+      if (fileId) {
+        var file = DriveApp.getFileById(fileId[0]);
+        var destinationSpreadsheet = SpreadsheetApp.openById(fileId[0]);
+        var sourceSpreadsheet = SpreadsheetApp.openById(sourceSheetId);
+        var sourceSheet = sourceSpreadsheet.getSheetByName(sourceSheetName);
+
+        if (sourceSheet) {
+          var newSheet = sourceSheet.copyTo(destinationSpreadsheet);
+          newSheet.setName(sourceSheetName);
+          Logger.log('Copied sheet to file: ' + file.getName());
+        } else {
+          Logger.log('Sheet "' + sourceSheetName + '" not found in the source file.');
+        }
+      }
+    } catch (e) {
+      Logger.log('Error processing file with URL: ' + fileUrl + ' - ' + e.message);
+    }
+  });
+}
