@@ -22,3 +22,24 @@ function listFilesInFolder() {
   // Optionally, you can output to a Google Sheet
   outputToSheet(output);
 }
+
+//Pushing all output data to current File >> All Files Tab
+function outputToSheet(fileData) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var tabName = "All Files";
+  var existingSheet = sheet.getSheetByName(tabName);
+  
+  if (existingSheet) {
+    existingSheet.clear(); // Clear the existing sheet if it exists
+  } else {
+    existingSheet = sheet.insertSheet(tabName); // Create the sheet if it doesn't exist
+  }
+
+  existingSheet.appendRow(['File Name', 'File URL']);
+
+  fileData.forEach(function(file) {
+    existingSheet.appendRow([file.name, file.url]);
+  });
+
+  Logger.log('Data has been written to the "All Files" tab in the current active sheet.');
+}
