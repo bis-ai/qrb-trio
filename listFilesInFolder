@@ -1,0 +1,24 @@
+/*
+*To Pull all the file Names and URL for the Files from a Folder
+*
+*/
+function listFilesInFolder() {
+  // Replace 'YOUR_FOLDER_ID' with the ID of your Google Drive folder
+  var folderId = '1DNvfcmVzBDzDASe2QOJRvqUZ36YE_hbv';
+  var folder = DriveApp.getFolderById(folderId);
+  var files = folder.getFiles();
+
+  var output = [];
+
+  while (files.hasNext()) {
+    var file = files.next();
+    output.push({
+      name: file.getName(),
+      url: file.getUrl()
+    });
+  }
+
+  Logger.log(output);
+  // Optionally, you can output to a Google Sheet
+  outputToSheet(output);
+}
