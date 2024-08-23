@@ -1,0 +1,14 @@
+function extractHyperlinkURL(cellReference) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1");
+  var range = sheet.getRange(cellReference);
+  var richTextValue = range.getRichTextValue();
+  if (richTextValue != null) {
+    var linkUrl = richTextValue.getLinkUrl();
+    return linkUrl ? linkUrl : "No URL found";
+  }
+  return "No URL found";
+}
+
+
+'R&D Priorities: https://docs.google.com/spreadsheets/d/19ox9iLy-fD98UrotaNnaCTkx1UPBTon-M8nyBgwwfxI/edit?pli=1&gid=1270607773#gid=1270607773
+'=IFERROR(RIGHT(extractHyperlinkURL("B"&ROW(A2:A)),LEN(extractHyperlinkURL("B"&ROW(A2:A)))-FIND("/",extractHyperlinkURL("B"&ROW(A2:A)),35)),"Jira URL not tagged")
