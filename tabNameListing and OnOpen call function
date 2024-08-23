@@ -1,0 +1,59 @@
+function sheetNameListing() {
+  var allSheets,i,sheetCount,sheetName,ss,
+      targetSh,targetSS,thisSheet, sheetId, startRow=4, startCol=11;
+ 
+  //ss = SpreadsheetApp.openById("1lB790UadCwytHnyE51Cid46lpxf6W62j-oROpZVWkHw");
+  //targetSS = SpreadsheetApp.openById("1lB790UadCwytHnyE51Cid46lpxf6W62j-oROpZVWkHw");
+  ss = SpreadsheetApp.getActiveSpreadsheet();
+  targetSS = SpreadsheetApp.getActiveSpreadsheet();
+ 
+  targetSh = targetSS.getSheetByName('Admin_DND');
+ 
+ 
+  allSheets = ss.getSheets();
+  sheetCount = allSheets.length;
+ 
+  targetSh.getRange(startRow,startCol,sheetCount,1).clear();
+  //targetSh.getRange(startRow,startCol+1,sheetCount,1).clear();
+ 
+ 
+ 
+  for (i=0;i<sheetCount;i++) {
+    thisSheet = allSheets[i];
+    sheetName = thisSheet.getName();
+    sheetId = thisSheet.getSheetId();
+   
+    //targetSh.getRange(startRow+i, startCol).setValue(sheetName);
+    targetSh.getRange(startRow+i, startCol).setFormula('=HYPERLINK("#gid='+sheetId+'","'+sheetName+'")');
+  }
+ 
+  Logger.log("Success: End of function");
+}//End of sheetNameListing()...
+
+
+
+/*
+******************************************************************
+Method: To Create Custom Menu
+This is First Function to be called when App Loads
+******************************************************************
+*/
+function onOpen() {
+  // Call the Tab Listing function first...
+  sheetNameListing();
+
+  // Add a custom menu to the spreadsheet
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Narvar')
+  .addItem('Refresh Tab Names', 'sheetNameListing')
+  .addToUi();
+ 
+}
+
+// This function is triggered when the URL is accessed.
+function doGet(e) {
+
+  sheetNameListing();
+  // Return a simple text response
+  return ContentService.createTextOutput("Refresh done: Tab-Names in Dropdown!");
+}
