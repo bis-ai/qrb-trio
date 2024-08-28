@@ -1,0 +1,146 @@
+/*
+-------------
+Purpose:
+Copy Static, Formula and Formatting from Source sheet to multiple Destinations
+-------------
+*/
+function copyDataFormulasAndColors() {
+  Logger.log("Script execution started.");
+
+  // Step 1: Get the central sheet and the Config_DND tab
+  var centralSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config_DND');
+  Logger.log("Central Sheet 'Config_DND' accessed.");
+
+  // Step 2: Get the source sheet URL from cell Q2
+  var sourceSheetUrl = centralSheet.getRange('Q2').getValue();
+  Logger.log("Source Sheet URL: " + sourceSheetUrl);
+
+  // Step 3: Extract the source spreadsheet ID from the URL
+  var sourceSpreadsheetId = extractSpreadsheetIdFromUrl(sourceSheetUrl);
+  Logger.log("Source Spreadsheet ID: " + sourceSpreadsheetId);
+
+  // Step 4: Open the source spreadsheet and access the Config_DND tab
+  var sourceSpreadsheet = SpreadsheetApp.openById(sourceSpreadsheetId);
+  var sourceSheet = sourceSpreadsheet.getSheetByName('Config_DND');
+  Logger.log("Source Sheet 'Config_DND' accessed.");
+
+  // Step 5: Get static data (J1:W2) and formula data (R2:V3) along with background colors
+  var staticRange = sourceSheet.getRange('J1:W2');
+  var formulaRange = sourceSheet.getRange('R2:V3');
+  
+  var staticData = staticRange.getValues();
+  var formulaData = formulaRange.getFormulas();
+  
+  var staticBackgrounds = staticRange.getBackgrounds();
+  var formulaBackgrounds = formulaRange.getBackgrounds();
+  
+  Logger.log("Data and formulas retrieved from source ranges J1:W2 and R2:V3.");
+  
+  // Step 6: Iterate over destination URLs from B2 to B10 and copy data/formulas/colors
+  for (var i = 2; i <= 10; i++) {
+    var destinationSheetUrl = centralSheet.getRange('B' + i).getValue();
+    if (destinationSheetUrl) {
+      var destinationSpreadsheetId = extractSpreadsheetIdFromUrl(destinationSheetUrl);
+      Logger.log("Destination Spreadsheet ID (Row " + i + "): " + destinationSpreadsheetId);
+      
+      var destinationSpreadsheet = SpreadsheetApp.openById(destinationSpreadsheetId);
+      var destinationSheet = destinationSpreadsheet.getSheetByName('Config_DND');
+      Logger.log("Destination Sheet 'Config_DND' accessed for Row " + i + ".");
+
+      // Clear the destination ranges before copying data
+      destinationSheet.getRange('J1:W2').clearContent();
+      destinationSheet.getRange('R2:V3').clearContent();
+      destinationSheet.getRange('J1:W2').setBackground(null);
+      destinationSheet.getRange('R2:V3').setBackground(null);
+      Logger.log("Cleared ranges J1:W2 and R2:V3 in the destination sheet for Row " + i + ".");
+
+      // Copy static data and color formatting
+      destinationSheet.getRange('J1:W2').setValues(staticData);
+      destinationSheet.getRange('J1:W2').setBackgrounds(staticBackgrounds);
+      Logger.log("Static data and colors copied to destination range J1:W2 for Row " + i + ".");
+
+      // Copy formula data and color formatting
+      destinationSheet.getRange('R2:V3').setFormulas(formulaData);
+      destinationSheet.getRange('R2:V3').setBackgrounds(formulaBackgrounds);
+      Logger.log("Formula data and colors copied to destination range R2:V3 for Row " + i + ".");
+    }
+  }
+
+  Logger.log("Script execution completed.");
+}
+
+// Utility function to extract the spreadsheet ID from a Google Sheets URL
+function extractSpreadsheetIdFromUrl(url) {
+  Logger.log("Extracting Spreadsheet ID from URL: " + url);
+  var matches = url.match(/[-\w]{25,}/);
+  return matches ? matches[0] : null;
+}
+
+
+
+
+
+function copyScriptCode() {
+  Logger.log("Starting the script to copy Google Apps Script code...");
+
+  // Step 1: Get the Central Sheet and retrieve the source and destination URLs
+  var centralSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config_DND');
+  Logger.log("Retrieved Central Sheet: Config_DND");
+
+  var sourceSheetUrl = centralSheet.getRange('Q2').getValue();
+  var destinationSheetUrl = centralSheet.getRange('Q3').getValue();
+  Logger.log("Source Sheet URL: " + sourceSheetUrl);
+  Logger.log("Destination Sheet URL: " + destinationSheetUrl);
+
+  // Step 2: Extract Spreadsheet IDs from URLs
+  var sourceSpreadsheetId = extractSpreadsheetIdFromUrl(sourceSheetUrl);
+  var destinationSpreadsheetId = extractSpreadsheetIdFromUrl(destinationSheetUrl);
+  Logger.log("Source Spreadsheet ID: " + sourceSpreadsheetId);
+  Logger.log("Destination Spreadsheet ID: " + destinationSpreadsheetId);
+
+  // Step 3: Get the script files from the source project
+  var scriptFiles = getScriptFilesFromProject(sourceSpreadsheetId);
+  Logger.log("Retrieved " + scriptFiles.length + " script file(s) from the source project.");
+
+  // Step 4: Copy the script files to the destination project
+  copyFilesToProject(scriptFiles, destinationSpreadsheetId);
+  Logger.log("Successfully copied script files to the destination project.");
+
+  Logger.log("Script execution completed.");
+}
+
+function extractSpreadsheetIdFromUrl(url) {
+  // Objective: Extract the Spreadsheet ID from the provided URL.
+  Logger.log("Extracting Spreadsheet ID from URL: " + url);
+  var matches = url.match(/[-\w]{25,}/);
+  return matches ? matches[0] : null;
+}
+
+function getScriptFilesFromProject(spreadsheetId) {
+  // Objective: Retrieve the Apps Script files associated with the spreadsheet's project.
+  Logger.log("Fetching script files for Spreadsheet ID: " + spreadsheetId);
+  
+  var url = 'https://script.googleapis.com/v1/projects/' + spreadsheetId + '/content';
+  var response = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
+  var data = JSON.parse(response.getContentText());
+  
+  return data.files || [];
+}
+
+function copyFilesToProject(files, destinationSpreadsheetId) {
+  // Objective: Copy script files to the destination project's script.
+  Logger.log("Copying script files to the destination Spreadsheet ID: " + destinationSpreadsheetId);
+
+  var url = 'https://script.googleapis.com/v1/projects/' + destinationSpreadsheetId + '/content';
+  var payload = JSON.stringify({ files: files });
+  
+  var options = {
+    method: 'PUT',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    payload: payload
+  };
+
+  var response = UrlFetchApp.fetch(url, options);
+  Logger.log("Response from Google Apps Script API: " + response.getContentText());
+}
