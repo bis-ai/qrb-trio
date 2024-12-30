@@ -1,0 +1,137 @@
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu("TPM")
+    .addItem("Gen Project ID(Col-AY)", "generateUniqueProjectID_ID_ColumnAF_WithLogs")
+    .addToUi();
+}
+
+
+/**
+ * Function: generateUniqueProjectID_ID_ColumnAF_WithLogs
+ * 
+ * Overview:
+ * - Automates the creation of unique Project IDs in Column `AF` of the "FY26 Q1 Build" tab.
+ * - Logs details of generated Project IDs in the "ProjectId_Log" tab.
+ * 
+ * Key Features:
+ * 1. **Dynamic ID Generation**:
+ *    - Combines three components to generate a unique Project ID:
+ *      - Prefix (e.g., `FY26Q1`) defined in `Admin_DND` Cell `K1`.
+ *      - Team-specific code from the "Admin_DND" tab.
+ *      - Project counter that increments for each new Project ID.
+ * 
+ * 2. **Conditional Execution**:
+ *    - Generates Project IDs only for rows where:
+ *      - Column `C` (Project Name) has data.
+ *      - Column `AF` (Project ID) is blank.
+ * 
+ * 3. **Integration with Admin_DND**:
+ *    - Matches the Team Name in Column `D` of "FY26 Q1 Build" with corresponding data in "Admin_DND".
+ *    - Updates the project counter in the "Admin_DND" tab for each generated ID.
+ * 
+ * 4. **Logging**:
+ *    - Logs generated Project IDs in the "ProjectId_Log" tab with the following details:
+ *      - **Column A**: Project ID.
+ *      - **Column B**: Project Name (from Column `C` in "FY26 Q1 Build").
+ *      - **Column C**: Creation timestamp with IST timezone.
+ *      - **Column D**: User who triggered the script.
+ *    - Appends logs to the end of the "ProjectId_Log" tab for full traceability.
+ * 
+ * 5. **Error Handling**:
+ *    - Ensures existing Project IDs in Column `AF` remain unchanged.
+ *    - Handles rows gracefully if required conditions are not met.
+ * 
+ * 6. **Scalability**:
+ *    - Processes all rows starting from Row 6 in "FY26 Q1 Build".
+ *    - Designed to handle large datasets efficiently.
+ * 
+ * Business Benefits:
+ * - Saves time by automating the generation and maintenance of unique Project IDs.
+ * - Ensures consistency, accuracy, and traceability across teams and projects.
+ * - Provides a complete audit trail for accountability and compliance.
+ * - Boosts team productivity by reducing manual effort for routine tasks.
+ */
+
+
+function generateUniqueProjectID_ID_ColumnAF_WithLogs() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Define the source tabs
+  const buildSheet = ss.getSheetByName("FY26 Q1 Build");
+  const adminSheet = ss.getSheetByName("Admin_DND");
+  const logSheet = ss.getSheetByName("ProjectId_Log");
+
+  const projectID_col = 51;
+
+  // Get the prefix from Admin_DND Cell K1
+  const prefix = adminSheet.getRange("K1").getValue();
+
+  // Fetch the Admin_DND table (columns G to K)
+  const adminRange = adminSheet.getRange("G4:K25").getValues(); // Admin table data
+  const teamDataMap = {}; // To store team codes and counters
+  
+  // Map each team name to its code and project counter
+  adminRange.forEach(row => {
+    const teamName = row[0]; // Column G: Team Name
+    const teamCode = row[3]; // Column J: Team Code
+    const projectCounter = row[4]+1; // Column K: Project Counter
+    if (teamName) {
+      teamDataMap[teamName] = { teamCode, projectCounter };
+    }
+  });
+
+  // Get data from the "FY26 Q1 Build" tab
+  const startRow = 6; // Starting row for data
+  const projectIDs = buildSheet.getRange(startRow, projectID_col, buildSheet.getLastRow() - startRow + 1, 1).getValues(); // Column A&: Project ID
+  const projectNames = buildSheet.getRange(startRow, 2, buildSheet.getLastRow() - startRow + 1, 1).getValues(); // Column B: Project Name
+  const teamNames = buildSheet.getRange(startRow, 3, buildSheet.getLastRow() - startRow + 1, 1).getValues(); // Column C: Team Name
+
+  const updatedIDs = []; // To store updated Project IDs or retain existing values
+  const logEntries = []; // To store log entries for new Project IDs
+  
+  const userEmail = Session.getActiveUser().getEmail(); // Get the email of the user who triggered the script
+  const currentTimestamp = new Date(); // Current timestamp in IST
+  const istTimestamp = Utilities.formatDate(currentTimestamp, "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss z"); // IST format
+
+  // Process each row in the "FY26 Q1 Build" tab
+  projectIDs.forEach((row, index) => {
+    const currentID = row[0]; // Column AF: Project ID
+    const projectName = projectNames[index][0]; // Column C: Project Name
+    const teamName = teamNames[index][0]; // Column D: Team Name
+
+    if (!currentID && projectName && teamName && teamDataMap[teamName]) {
+      // Generate a new Project ID if conditions are met
+      const { teamCode, projectCounter } = teamDataMap[teamName];
+      const projectID = `${prefix}-${teamCode}-${projectCounter}`;
+      updatedIDs.push([projectID]);
+      
+      // Log the new Project ID
+      logEntries.push([projectID, projectName, istTimestamp, userEmail]);
+      
+      // Increment the project counter for this team
+      teamDataMap[teamName].projectCounter++;
+    } else {
+      // Retain the current value in Column AF or keep it blank
+      updatedIDs.push([currentID]);
+    }
+  });
+
+  // Write updated Project IDs back to Column AF of "FY26 Q1 Build" (starting from Row 6)
+  buildSheet.getRange(startRow, projectID_col, updatedIDs.length, 1).setValues(updatedIDs);
+
+  // Update the project counters in Admin_DND tab
+  adminRange.forEach((row, index) => {
+    const teamName = row[0]; // Column G: Team Name
+    if (teamName && teamDataMap[teamName]) {
+      adminSheet.getRange(4 + index, 11).setValue(teamDataMap[teamName].projectCounter-1); // Update Column K
+    }
+  });
+
+  // Append the log entries to the "ProjectId_Log" tab
+  if (logEntries.length > 0) {
+    const lastRow = logSheet.getLastRow();
+    logSheet.getRange(lastRow + 1, 1, logEntries.length, 4).setValues(logEntries); // Columns A (Project ID), B (Project Name), C (Timestamp), D (Triggered By)
+  }
+
+  Logger.log("Unique Project IDs generated, counters updated, and logs appended for eligible rows.");
+}
