@@ -1,10 +1,3 @@
-function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu("TPM")
-    .addItem("Gen Project ID(Col-AY)", "generateUniqueProjectID_ID_ColumnAF_WithLogs")
-    .addToUi();
-}
-
 
 /**
  * Function: generateUniqueProjectID_ID_ColumnAF_WithLogs
@@ -135,3 +128,18 @@ function generateUniqueProjectID_ID_ColumnAF_WithLogs() {
 
   Logger.log("Unique Project IDs generated, counters updated, and logs appended for eligible rows.");
 }
+
+
+
+
+/**
+ * Function: Load Option to run function, on Open of file...
+ * 
+*/
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu("TPM")
+    .addItem("Gen Project ID(Col-AY)", "generateUniqueProjectID_ID_ColumnAF_WithLogs")
+    .addToUi();
+}
+
